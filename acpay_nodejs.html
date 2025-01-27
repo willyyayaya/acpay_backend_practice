@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>PRIME Mode(Nodejs version)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+        body { margin: 20px 0; }
+        .jumbotron { text-align: center; }
+        .container { max-width: 750px; }
+        form { padding: 40px; box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08); }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <form id="payment-form">
+        <div class="form-group">
+            <label for="email">Email address</label>
+            <input type="email" class="form-control" id="email" required placeholder="Email">
+        </div>
+        <div class="form-group card-number-group">
+            <label for="card-number">卡號</label>
+            <div class="form-control card-number"></div>
+        </div>
+        <div class="form-group expiration-date-group">
+            <label for="expiration-date">卡片到期日</label>
+            <div class="form-control expiration-date" id="acpay-expiration-date"></div>
+        </div>
+        <div class="form-group cvc-group">
+            <label for="cvc">卡片後三碼</label>
+            <div class="form-control cvc"></div>
+        </div>
+        <button type="submit" class="btn btn-primary">提交付款</button>
+    </form>
+    <br>
+    <div id="result" class="jumbotron text-left"></div>
+
+    <h3>交易記錄管理</h3>
+    <button class="btn btn-info" onclick="fetchPayments()">取得所有交易記錄</button>
+    <br><br>
+
+    <div class="form-group">
+        <label for="update-id">交易記錄 ID</label>
+        <input type="number" class="form-control" id="update-id" placeholder="輸入交易記錄 ID">
+    </div>
+    <div class="form-group">
+        <label for="update-email">更新 Email</label>
+        <input type="email" class="form-control" id="update-email" placeholder="輸入新的 Email">
+    </div>
+    <button class="btn btn-warning" onclick="updatePayment()">更新交易記錄</button>
+    <br><br>
+
+    <div class="form-group">
+        <label for="delete-id">刪除交易記錄 ID</label>
+        <input type="number" class="form-control" id="delete-id" placeholder="輸入交易記錄 ID">
+    </div>
+    <button class="btn btn-danger" onclick="deletePayment()">刪除交易記錄</button>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://connectjs.payloop.com.tw/ACconnect/v1.0.3.js"></script>
+<script>
+    // 初始化信用卡 SDK
+    ACconnect.setupSDK('090414780201003', '854b72ab-3828-4994-ab6c-16b5145937a8', 'sandbox');
+    ACconnect.card.setup({
+        fields: {
+            number: { element: '.form-control.card-number', placeholder: '4444 3333 2222 1111' },
+            expirationDate: { element: document.getElementById('acpay-expiration-date'), placeholder: '08 / 28' },
+            ccv: { element: '.form-control.cvc', placeholder: '886' }
+        }
+    });
+
+    // 創建交易記錄 (Create)
+    $('#payment-form').on('submit', function (event) {
+        event.preventDefault();
+        ACconnect.card.getPrime(function (result) {
+            if (result.status !== 0) {
+                alert('錯誤: ' + result.msg);
+                return;
+            }
+            const email = $('#email').val();
+            fetch('http://localhost:3000/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, prime: result.card.prime })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('伺服器錯誤: ' + res.status);
+                }
+                return res.json();
+            })
+            .then(data => $('#result').text(data.message))
+            .catch(err => console.error('發生錯誤:', err));
+
+        });
+    });
+
+    // 取得所有交易記錄 (Read)
+    function fetchPayments() {
+        fetch('http://localhost:3000/payments')
+            .then(response => response.json())
+            .then(data => {
+                let output = '<h4>交易記錄：</h4><ul>';
+                data.forEach(payment => {
+                    output += `<li>ID: ${payment.id}, Email: ${payment.email}, Prime: ${payment.prime}</li>`;
+                });
+                output += '</ul>';
+                document.getElementById('result').innerHTML = output;
+            })
+            .catch(err => console.error('查詢失敗:', err));
+    }
+
+    // 更新交易記錄 (Update)
+    function updatePayment() {
+        const id = document.getElementById('update-id').value;
+        const email = document.getElementById('update-email').value;
+        fetch(`http://localhost:3000/payments/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('result').innerText = data.message;
+            fetchPayments(); // 重新取得交易記錄
+        })
+        .catch(err => console.error('更新失敗:', err));
+    }
+
+    // 刪除交易記錄 (Delete)
+    function deletePayment() {
+        const id = document.getElementById('delete-id').value;
+        fetch(`http://localhost:3000/payments/${id}`, {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('result').innerText = data.message;
+            fetchPayments(); // 重新取得交易記錄
+        })
+        .catch(err => console.error('刪除失敗:', err));
+    }
+</script>
+</body>
+
+</html>
