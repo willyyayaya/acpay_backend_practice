@@ -696,6 +696,22 @@ node server.js
 ```
 資料庫與 JavaScript 版本所使用的一樣。
 
+執行 FastAPI 和 Uvicorn
+---
+用終端機執行
+```
+uvicorn main:app --reload
+```
+正確執行的話，終端機會顯示
+```
+INFO:     Will watch for changes in these directories: ['C:\\Users\\willy\\OneDrive\\桌面\\prime_main\\acpay_backend_practice']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [5692] using WatchFiles
+INFO:     Started server process [19952]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
 想到的問題
 ---
 1.如何用自定義 callback function 使用 Prime? 
