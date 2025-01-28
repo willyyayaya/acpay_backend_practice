@@ -5,13 +5,13 @@ const cors = require('cors');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));  // 服務靜態 HTML
+app.use(express.static('public'));
 
 // 建立資料庫連線
 const db = mysql.createConnection({
     host: 'localhost',
-    user: 'root',  // 修改為你的 MySQL 用戶名
-    password: '',  // 修改為你的 MySQL 密碼
+    user: 'root',
+    password: '',
     database: 'acpay_db'
 });
 

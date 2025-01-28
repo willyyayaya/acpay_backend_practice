@@ -22,7 +22,7 @@ app = FastAPI()
 # 設定 CORS，允許前端存取
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 可以改成你的前端網址，例如 http://127.0.0.1:5500
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,7 +40,7 @@ class PaymentResponse(BaseModel):
     id: int
     email: str
     prime: str
-    created_at: datetime  # 使用 datetime 來表示時間戳
+    created_at: datetime
     
 # 資料庫連線函式
 def get_db_connection():
@@ -57,9 +57,10 @@ def get_db_connection():
 async def root():
     return {"message": "FastAPI 付款管理系統運行中"}
 
-# 創建支付記錄 (Create)
+# 創建交易記錄 (Create)
 @app.post("/checkout", response_model=dict)
 async def create_payment(payment: PaymentCreate):
+    print(f"接收到的資料: {payment}")
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
@@ -72,7 +73,7 @@ async def create_payment(payment: PaymentCreate):
     finally:
         connection.close()
 
-# 取得所有支付記錄 (Read)
+# 取得所有交易記錄 (Read)
 @app.get("/payments", response_model=List[PaymentResponse])
 async def get_payments():
     connection = get_db_connection()
@@ -87,7 +88,7 @@ async def get_payments():
     finally:
         connection.close()
 
-# 更新支付記錄 (Update)
+# 更新交易記錄 (Update)
 @app.put("/payments/{payment_id}", response_model=dict)
 async def update_payment(payment_id: int, payment: PaymentUpdate):
     connection = get_db_connection()
@@ -104,7 +105,7 @@ async def update_payment(payment_id: int, payment: PaymentUpdate):
     finally:
         connection.close()
 
-# 刪除支付記錄 (Delete)
+# 刪除交易記錄 (Delete)
 @app.delete("/payments/{payment_id}", response_model=dict)
 async def delete_payment(payment_id: int):
     connection = get_db_connection()
