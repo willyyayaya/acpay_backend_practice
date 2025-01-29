@@ -1,5 +1,5 @@
 ---
-title: 關於 ACpay 信用卡 Prime mode 的筆記
+title: 無標題
 
 ---
 
@@ -161,7 +161,7 @@ title: 關於 ACpay 信用卡 Prime mode 的筆記
 
 </html>
 ```
-可以直接在網頁執行 CRUD 功能，其中資料庫為 MySQL 系統，裡面會儲存交易記錄 ID(ID)、信箱(email)、Prime資訊(prime)和交易時間(create_at)。
+可以直接在網頁執行 CRUD 功能，其中資料庫為 MySQL 系統，裡面會儲存交易記錄 ID(ID)、信箱(email)、Prime資訊(prime)和交易時間(create_at)。  
 資料庫的檔案在 mysql 資料夾，可以直接匯入。
 
 執行 Nodejs
@@ -334,7 +334,7 @@ node server.js
 ```
 資料庫與 JavaScript 版本所使用的一樣。
 
-執行 FastAPI 和 Uvicorn
+執行 Uvicorn
 ---
 用終端機執行
 ```
@@ -352,11 +352,11 @@ INFO:     Application startup complete.
 
 想到的問題
 ---
-1.如何用自定義 callback function 使用 Prime? 
+1.如何用自定義 callback function 使用 Prime?
 : 可以利用 ACconnect.card.getPrime 方法，自行撰寫想要的 callback function。
 
 2.如何避免重複付款的情況?
-: 需要設計條件限制，例如在三十秒內無法用同一個信用卡付款、在使用者提交表單後立即禁用按鈕直到付款完成或失敗為止等條件。
+: 需要設計條件限制，例如在三十秒內無法用同一個信用卡付款、在使用者提交表單後立即禁用按鈕直到付款完成或付款失敗為止等條件。
 
 3.Prime 的資訊需要存到服務端的資料庫嗎?
 : 可存可不存，一般來說 Prime 資訊會存到支付服務供應商的資料庫，服務端不會使用 Prime 資訊，但如果服務端如果有特定需求，可以臨時儲存 Prime 資訊，但必須確保加密、定期刪除，並限制存取權限。
@@ -364,4 +364,4 @@ INFO:     Application startup complete.
 目前的進度(1/21 ~ 1/30)
 ---
 
-![Python Backend Project Plan](https://hackmd.io/_uploads/H1s2gCHOJl.png)
+![Python Backend Project Plan](https://hackmd.io/_uploads/ryx0UpPu1x.png)

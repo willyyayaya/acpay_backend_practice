@@ -16,10 +16,10 @@ DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "acpay_db")
 
-# 建立 FastAPI 應用程式
+# 建立 FastAPI
 app = FastAPI()
 
-# 設定 CORS，允許前端存取
+# 設定 CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,7 +42,7 @@ class PaymentResponse(BaseModel):
     prime: str
     created_at: datetime
     
-# 資料庫連線函式
+# 資料庫連線
 def get_db_connection():
     return pymysql.connect(
         host=DB_HOST,
@@ -52,7 +52,7 @@ def get_db_connection():
         cursorclass=pymysql.cursors.DictCursor
     )
 
-# 根目錄測試
+# 根目錄
 @app.get("/")
 async def root():
     return {"message": "FastAPI 付款管理系統運行中"}
