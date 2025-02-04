@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>PRIME Mode(Nodejs version)</title>
+    <title>PRIME Mode(FastApi version)</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
@@ -102,7 +102,12 @@
         // 取得所有交易記錄 (Read)
         function fetchPayments() {
             fetch(`${API_BASE_URL}/payments`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     let output = '<h4>交易記錄：</h4><ul>';
                     data.forEach(payment => {

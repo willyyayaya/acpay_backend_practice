@@ -1,25 +1,18 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from datetime import datetime
-from typing import List
-import pymysql
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel, EmailStr
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, select
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from datetime import UTC, datetime
 import os
+import random
+import logging
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
-# 載入環境變數
-load_dotenv()
-
-# MySQL 連線設定
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_NAME = os.getenv("DB_NAME", "acpay_db")
-
-# 建立 FastAPI
+# 初始化 FastAPI
 app = FastAPI()
 
-# 設定 CORS
+# 啟用 CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,96 +21,80 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 資料模型
-class PaymentCreate(BaseModel):
-    email: str
-    prime: str
+# 設定 logging
+logging.basicConfig(level=logging.INFO)
 
-class PaymentUpdate(BaseModel):
-    email: str
+# 載入環境變數
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL", "mysql+pymysql://root:@localhost/acpay_db")
+
+# 設定資料庫連線
+engine = create_engine(DB_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+Base = declarative_base()
+
+# 定義 ORM 模型
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True)
+    prime = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+
+# 取得 DB 會話
+def get_db():
+    with SessionLocal() as db:
+        yield db
+
+# Pydantic 模型
+class OrderCreate(BaseModel):
+    email: EmailStr
 
 class PaymentResponse(BaseModel):
     id: int
     email: str
     prime: str
     created_at: datetime
-    
-# 資料庫連線
-def get_db_connection():
-    return pymysql.connect(
-        host=DB_HOST,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME,
-        cursorclass=pymysql.cursors.DictCursor
-    )
 
-# 根目錄
+# 模擬 OTP 儲存 (正式環境應使用 Redis 或 DB)
+otp_store = {}
+
 @app.get("/")
-async def root():
+def root():
     return {"message": "FastAPI 付款管理系統運行中"}
 
-# 創建交易記錄 (Create)
-@app.post("/checkout", response_model=dict)
-async def create_payment(payment: PaymentCreate):
-    print(f"接收到的資料: {payment}")
-    connection = get_db_connection()
-    try:
-        with connection.cursor() as cursor:
-            sql = "INSERT INTO payments (email, prime) VALUES (%s, %s)"
-            cursor.execute(sql, (payment.email, payment.prime))
-            connection.commit()
-            return {"message": "付款成功!", "id": cursor.lastrowid}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"資料庫錯誤: {str(e)}")
-    finally:
-        connection.close()
+@app.post("/otp")
+def generate_otp(email: EmailStr):
+    otp_store[email] = random.randint(100000, 999999)
+    logging.info(f"OTP for {email}: {otp_store[email]}")  # 實際應寄送 OTP
+    return {"message": "OTP 已發送"}
 
-# 取得所有交易記錄 (Read)
-@app.get("/payments", response_model=List[PaymentResponse])
-async def get_payments():
-    connection = get_db_connection()
-    try:
-        with connection.cursor() as cursor:
-            sql = "SELECT id, email, prime, created_at FROM payments ORDER BY created_at DESC"
-            cursor.execute(sql)
-            payments = cursor.fetchall()
-            return payments
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"資料庫查詢失敗: {str(e)}")
-    finally:
-        connection.close()
+@app.post("/order")
+def create_order(order: OrderCreate, db: Session = Depends(get_db)):
+    if order.email not in otp_store:
+        raise HTTPException(status_code=400, detail="請先驗證 OTP")
+    
+    otp_store.pop(order.email)  # OTP 只能使用一次
+    prime_token = f"test_prime_{random.randint(100000, 999999)}"
+    
+    payment = Payment(email=order.email, prime=prime_token)
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+    
+    return {"order_id": payment.id, "prime": prime_token}
 
-# 更新交易記錄 (Update)
-@app.put("/payments/{payment_id}", response_model=dict)
-async def update_payment(payment_id: int, payment: PaymentUpdate):
-    connection = get_db_connection()
-    try:
-        with connection.cursor() as cursor:
-            sql = "UPDATE payments SET email = %s WHERE id = %s"
-            cursor.execute(sql, (payment.email, payment_id))
-            connection.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(status_code=404, detail="找不到該筆付款記錄")
-            return {"message": "更新成功!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"更新失敗: {str(e)}")
-    finally:
-        connection.close()
+@app.get("/payments", response_model=list[PaymentResponse])
+def get_payments(db: Session = Depends(get_db)):
+    stmt = select(Payment).order_by(Payment.created_at.desc())
+    return db.execute(stmt).scalars().all()
 
-# 刪除交易記錄 (Delete)
-@app.delete("/payments/{payment_id}", response_model=dict)
-async def delete_payment(payment_id: int):
-    connection = get_db_connection()
-    try:
-        with connection.cursor() as cursor:
-            sql = "DELETE FROM payments WHERE id = %s"
-            cursor.execute(sql, (payment_id,))
-            connection.commit()
-            if cursor.rowcount == 0:
-                raise HTTPException(status_code=404, detail="找不到該筆付款記錄")
-            return {"message": "刪除成功!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"刪除失敗: {str(e)}")
-    finally:
-        connection.close()
+@app.delete("/payments/{payment_id}")
+def delete_payment(payment_id: int, db: Session = Depends(get_db)):
+    payment = db.get(Payment, payment_id)
+    if not payment:
+        raise HTTPException(status_code=404, detail="付款記錄不存在")
+    
+    db.delete(payment)
+    db.commit()
+    return {"message": "刪除成功"}
