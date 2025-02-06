@@ -1,5 +1,5 @@
 ---
-title: 無標題
+title: 關於 ACpay 信用卡 Prime mode 的筆記
 
 ---
 
@@ -361,7 +361,13 @@ INFO:     Application startup complete.
 3.Prime 的資訊需要存到服務端的資料庫嗎?
 : 可存可不存，一般來說 Prime 資訊會存到支付服務供應商的資料庫，服務端不會使用 Prime 資訊，但如果服務端如果有特定需求，可以臨時儲存 Prime 資訊，但必須確保加密、定期刪除，並限制存取權限。
 
-目前的進度(1/21 ~ 1/30)
+4.關於金流細節，不可在前端處理，否則會有資安問題，要如何修正?
+: 前端要提交訂單給後端，後端創建訂單轉給前端讓使用者完成付款。
+
+5.如何增加程式碼的可讀性?
+: Python 可以用 Pythonic 寫法，SQL 可以用 Sqlalchemy Orm 處理。
+
+目前的進度(1/21 ~ 2/7)
 ---
 
-![Python Backend Project Plan](https://hackmd.io/_uploads/ryx0UpPu1x.png)
+![Python Backend Project Plan](https://hackmd.io/_uploads/H1hG_c-Y1l.png)
