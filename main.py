@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 
 # 載入環境變數
 load_dotenv()
-DB_URL = os.getenv("DATABASE_URL", "mysql+aiomysql://root:@localhost/acpay_db")
+DB_URL = os.getenv("DATABASE_URL", "mysql+pymysql://acpay_user:acpay_pass@mysql:3306/acpay_db")
 
 # 設定異步資料庫連線
 engine = create_async_engine(DB_URL, pool_pre_ping=True)

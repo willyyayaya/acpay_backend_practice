@@ -1,31 +1,14 @@
-FROM ubuntu:jammy-20240530
+# 使用 Python 官方映像檔
+FROM python:3.10
 
+# 設定工作目錄
+WORKDIR /app
 
-ENV PYTHONPATH="/run"
+# 複製應用程式代碼
+COPY . .
 
-# Set working directory for the application
-WORKDIR /run
+# 安裝 Python 套件
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Update and install required packages, clean up lists to reduce image size
-RUN apt-get update -qq && apt-get upgrade -y -qq && \
-    apt-get install -y -qq --no-install-recommends \
-    python3.11 \
-    python3.11-dev \
-    python3.11-distutils \
-    python3-pip \
-    git \
-    build-essential && \
-    rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip
-RUN python3.11 -m pip install --no-cache-dir --upgrade pip
-
-# Copy requirements.txt and install Python dependencies
-COPY ./requirements.txt /requirements.txt
-RUN python3.11 -m pip install --no-cache-dir --upgrade -r /requirements.txt
-
-# Copy the application code to the working directory
-#COPY . /app
-
-# Command to run the application
-CMD ["python3.11", "-m", "fastapi", "dev", "src/server.py", "--host", "0.0.0.0", "--port", "8000"]
+# 允許 Docker 直接執行應用程式
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

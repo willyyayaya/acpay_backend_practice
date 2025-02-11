@@ -1,56 +1,38 @@
-services:
+version: '3.8'
 
-  backend:
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: acpay-mysql
     restart: always
-    build:
-      context: .
-      dockerfile: Dockerfile
+    environment:
+      MYSQL_ROOT_PASSWORD:
+      MYSQL_DATABASE: acpay_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD:
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./acpay_db.sql:/docker-entrypoint-initdb.d/acpay_db.sql  # 自動載入 SQL 檔案
+    networks:
+      - acpay_network
+
+  api:
+    build: .
+    container_name: acpay-api
+    restart: always
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_URL: "mysql+pymysql://acpay_user:acpay_pass@mysql:3306/acpay_db"
     ports:
       - "8000:8000"
-    env_file:
-      - .env
-    volumes:
-      - ./src:/run/src
-      - ./alembic:/run/alembic
-      - ./alembic.ini:/run/alembic.ini
-      - ./run_alembic.sh:/run/run_alembic.sh
-    environment:
-      - PYTHONPATH=/run
-      - DEV=true
-    command: "python3.11 -m fastapi run src/server.py --host 0.0.0.0 --port 8000 --reload"
     networks:
-      - shared_network
+      - acpay_network
 
-  redis:
-    image: redis:7.0-alpine
-    restart: always
-    networks:
-      - shared_network
-    volumes:
-      - ./volume/redis_data:/data
-
-  mysql:
-    image: mysql:8.3
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: 
-      MYSQL_USER: root
-      MYSQL_PASSWORD: 
-      MYSQL_DATABASE: acpay_db
-    volumes:
-      - ./volume/mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
-    networks:
-      - shared_network
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - "8001:8080"
-    networks:
-      - shared_network
+volumes:
+  mysql_data:
 
 networks:
-  shared_network:
-    driver: bridge
+  acpay_network:
