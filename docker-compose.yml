@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
     container_name: acpay-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD:
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: acpay_db
-      MYSQL_USER: root
-      MYSQL_PASSWORD:
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./acpay_db.sql:/docker-entrypoint-initdb.d/acpay_db.sql  # 自動載入 SQL 檔案
+      - ./mysql/acpay_db.sql:/docker-entrypoint-initdb.d/acpay_db.sql  # 自動載入 SQL 檔案
     networks:
       - acpay_network
 
@@ -25,7 +23,7 @@ services:
     depends_on:
       - mysql
     environment:
-      DATABASE_URL: "mysql+pymysql://acpay_user:acpay_pass@mysql:3306/acpay_db"
+      DATABASE_URL: "mysql+pymysql://acpay_user:acpay_pass@mysql:3307/acpay_db"
     ports:
       - "8000:8000"
     networks:
