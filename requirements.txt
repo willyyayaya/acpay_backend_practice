@@ -1,4 +1,6 @@
 fastapi
 uvicorn
-pymysql
-SQLAlchemy
+sqlalchemy
+python-dotenv
+aiomysql
+pydantic[email]

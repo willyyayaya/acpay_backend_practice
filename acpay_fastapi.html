@@ -98,19 +98,24 @@
     });
 
     // 取得所有交易記錄
-    function fetchPayments() {
-        fetch(`${API_BASE_URL}/payments`)
-            .then(response => response.json())
-            .then(data => {
-                let output = '<h4>交易記錄：</h4><ul>';
-                data.forEach(payment => {
-                    output += `<li>ID: ${payment.id}, Email: ${payment.email}, Prime: ${payment.prime}, 時間: ${new Date(payment.created_at).toLocaleString()}</li>`;
-                });
-                output += '</ul>';
-                document.getElementById('result').innerHTML = output;
-            })
-            .catch(err => console.error('查詢失敗:', err));
+    async function fetchPayments() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/payments`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            mode: "cors",  // ✅ 確保 CORS 模式開啟
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Payments:", data);
+    } catch (error) {
+        console.error("Fetch error:", error);
     }
+}
 
     // 更新交易記錄
     function updatePayment() {

@@ -1,36 +1,42 @@
 services:
+  fastapi:
+    build: .
+    container_name: fastapi_app
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=mysql+aiomysql://admin:admin@mysql:3306/acpay_db  # 可以直接從環境變數讀取
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
   mysql:
     image: mysql:8.0
-    container_name: acpay-mysql
-    restart: always
+    container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: admin
       MYSQL_DATABASE: acpay_db
       MYSQL_USER: admin
       MYSQL_PASSWORD: admin
     ports:
       - "3307:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./mysql/acpay_db.sql:/docker-entrypoint-initdb.d/acpay_db.sql  # 自動載入 SQL 檔案
     networks:
-      - acpay_network
+      - app-network
 
-  api:
-    build: .
-    container_name: acpay-api
-    restart: always
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: admin  # 設定 phpMyAdmin 連接到 MySQL 容器
+      MYSQL_ROOT_PASSWORD: admin  # MySQL root 密碼
+    ports:
+      - "8080:80"  # phpMyAdmin 的 Web 介面將運行在宿主機的 8080 端口
     depends_on:
       - mysql
-    environment:
-      DATABASE_URL: "mysql+pymysql://acpay_user:acpay_pass@mysql:3307/acpay_db"
-    ports:
-      - "8000:8000"
     networks:
-      - acpay_network
-
-volumes:
-  mysql_data:
+      - app-network
 
 networks:
-  acpay_network:
+  app-network:
+    driver: bridge
