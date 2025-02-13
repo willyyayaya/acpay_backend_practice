@@ -1,21 +1,13 @@
-services:
-  fastapi:
-    build: .
-    container_name: fastapi_app
-    ports:
-      - "8001:8000"
-    environment:
-      - DATABASE_URL=mysql+aiomysql://admin:admin@mysql:3306/acpay_db  # 可以直接從環境變數讀取
-    depends_on:
-      - mysql
-    networks:
-      - app-network
+networks:
+  app-network:
+    driver: bridge
 
+services:
   mysql:
     image: mysql:8.0
     container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: acpay_db
       MYSQL_USER: admin
       MYSQL_PASSWORD: admin
@@ -28,8 +20,9 @@ services:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin
     environment:
-      PMA_HOST: admin  # 設定 phpMyAdmin 連接到 MySQL 容器
-      MYSQL_ROOT_PASSWORD: admin  # MySQL root 密碼
+      PMA_HOST: mysql  # 設定 phpMyAdmin 連接到 MySQL 容器
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
     ports:
       - "8080:80"  # phpMyAdmin 的 Web 介面將運行在宿主機的 8080 端口
     depends_on:
@@ -37,6 +30,14 @@ services:
     networks:
       - app-network
 
-networks:
-  app-network:
-    driver: bridge
+  fastapi:
+    build: .
+    container_name: fastapi
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "mysql+aiomysql://admin:admin@mysql:3306/acpay_db"  # 可以直接從環境變數讀取
+    depends_on:
+      - mysql
+    networks:
+      - app-network
