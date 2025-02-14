@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession, create_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import Column, Integer, String
 
-DATABASE_URL = "mysql+aiomysql://admin:admin@mysql:3306/acpay_db"
+DATABASE_URL = "mysql+pymysql://admin:admin@mysql:3306/acpay_db"
+
+engine = create_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 初始化資料庫連接
-engine = create_async_engine(DATABASE_URL, echo=True)
-SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # 定義一個測試資料表
