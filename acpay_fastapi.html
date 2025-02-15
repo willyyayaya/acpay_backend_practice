@@ -1,153 +1,120 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-
 <head>
-    <title>PRIME Mode (FastAPI version)</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <style>
-        body { margin: 20px 0; }
-        .jumbotron { text-align: center; }
-        .container { max-width: 750px; }
-        form { padding: 40px; box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08); }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACPAY 交易系統</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://connectjs.payloop.com.tw/ACconnect/v1.0.3.js"></script>
 </head>
-
 <body>
-<div class="container">
+    <h1>ACPAY 交易管理</h1>
+
+    <h2>建立交易</h2>
     <form id="payment-form">
-        <div class="form-group">
-            <label for="email">Email address</label>
-            <input type="email" class="form-control" id="email" required placeholder="Email">
-        </div>
-        <div class="form-group card-number-group">
-            <label for="card-number">卡號</label>
-            <div class="form-control card-number"></div>
-        </div>
-        <div class="form-group expiration-date-group">
-            <label for="expiration-date">卡片到期日</label>
-            <div class="form-control expiration-date" id="acpay-expiration-date"></div>
-        </div>
-        <div class="form-group cvc-group">
-            <label for="cvc">卡片後三碼</label>
-            <div class="form-control cvc"></div>
-        </div>
-        <button type="submit" class="btn btn-primary">提交付款</button>
+        <label>Email: <input type="email" id="email" required></label><br>
+        <label>信用卡號碼: <div class="form-control card-number"></div></label><br>
+        <label>有效日期: <div id="acpay-expiration-date"></div></label><br>
+        <label>安全碼: <div class="form-control cvc"></div></label><br>
+        <button type="submit">提交付款</button>
     </form>
-    <br>
-    <div id="result" class="jumbotron text-left"></div>
 
-    <h3>交易記錄管理</h3>
-    <button class="btn btn-info" onclick="fetchPayments()">取得所有交易記錄</button>
-    <br><br>
+    <h2>查詢交易</h2>
+    <button onclick="fetchPayments()">載入所有交易記錄</button>
+    <ul id="payments-list"></ul>
 
-    <div class="form-group">
-        <label for="update-id">交易記錄 ID</label>
-        <input type="number" class="form-control" id="update-id" placeholder="輸入交易記錄 ID">
-    </div>
-    <div class="form-group">
-        <label for="update-email">更新 Email</label>
-        <input type="email" class="form-control" id="update-email" placeholder="輸入新的 Email">
-    </div>
-    <button class="btn btn-warning" onclick="updatePayment()">更新交易記錄</button>
+    <h2>更新交易</h2>
+    <label>訂單 ID: <input type="number" id="update-id"></label><br>
+    <label>新 Email: <input type="email" id="update-email"></label><br>
+    <button onclick="updatePayment()">更新交易</button>
 
-    <div class="form-group">
-        <label for="delete-id">刪除交易記錄 ID</label>
-        <input type="number" class="form-control" id="delete-id" placeholder="輸入交易記錄 ID">
-    </div>
-    <button class="btn btn-danger" onclick="deletePayment()">刪除交易記錄</button>
-</div>
+    <h2>刪除交易</h2>
+    <label>訂單 ID: <input type="number" id="delete-id"></label><br>
+    <button onclick="deletePayment()">刪除交易</button>
 
-<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-<script src="https://connectjs.payloop.com.tw/ACconnect/v1.0.3.js"></script>
-<script>
-    const API_BASE_URL = "http://localhost:8000";
+    <h2>操作結果</h2>
+    <div id="result"></div>
 
-    // 初始化信用卡 SDK
-    ACconnect.setupSDK('090414780201003', '854b72ab-3828-4994-ab6c-16b5145937a8', 'sandbox');
-    ACconnect.card.setup({
-        fields: {
-            number: { element: '.form-control.card-number', placeholder: '4444 3333 2222 1111' },
-            expirationDate: { element: document.getElementById('acpay-expiration-date'), placeholder: '08 / 28' },
-            ccv: { element: '.form-control.cvc', placeholder: '886' }
-        }
-    });
+    <script>
+        const API_BASE_URL = "http://localhost:8000";
 
-    // 創建交易記錄
-    $('#payment-form').on('submit', function (event) {
-        event.preventDefault();
-        ACconnect.card.getPrime(function (result) {
-            if (result.status !== 0) {
-                alert('錯誤: ' + result.msg);
-                return;
+        $(document).ready(function () {
+            ACconnect.setupSDK('090414780201003', '854b72ab-3828-4994-ab6c-16b5145937a8', 'sandbox');
+            ACconnect.card.setup({
+                fields: {
+                    number: { element: '.form-control.card-number', placeholder: '4444 3333 2222 1111' },
+                    expirationDate: { element: document.getElementById('acpay-expiration-date'), placeholder: '08 / 28' },
+                    ccv: { element: '.form-control.cvc', placeholder: '886' }
+                }
+            });
+        });
+
+        $('#payment-form').on('submit', function (event) {
+            event.preventDefault();
+            ACconnect.card.getPrime(function (result) {
+                if (result.status !== 0) {
+                    alert('錯誤: ' + result.msg);
+                    return;
+                }
+                
+                const email = $('#email').val();
+                fetch(`${API_BASE_URL}/payments/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, prime: result.card.prime })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    $('#result').html(`<p>交易成功！ 訂單 ID: ${data.order_id}</p>`);
+                    fetchPayments();
+                })
+                .catch(err => console.error('發生錯誤:', err));
+            });
+        });
+
+        async function fetchPayments() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/payments/`);
+                const data = await response.json();
+                const paymentsList = $("#payments-list");
+                paymentsList.empty();
+
+                data.forEach(payment => {
+                    paymentsList.append(`<li>訂單 ${payment.id} - Email: ${payment.email}</li>`);
+                });
+            } catch (error) {
+                console.error("取得交易記錄錯誤:", error);
             }
-            const email = $('#email').val();
-            fetch(`${API_BASE_URL}/order`, {
-                method: 'POST',
+        }
+
+        function updatePayment() {
+            const id = document.getElementById('update-id').value;
+            const email = document.getElementById('update-email').value;
+            fetch(`${API_BASE_URL}/payments/${id}`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: email })
             })
             .then(res => res.json())
             .then(data => {
-                $('#result').html(`<p>交易成功！ 訂單 ID: ${data.order_id}, Prime: ${data.prime}</p>`);
+                document.getElementById('result').innerText = data.message;
                 fetchPayments();
             })
-            .catch(err => console.error('發生錯誤:', err));
-        });
-    });
-
-    // 取得所有交易記錄
-    async function fetchPayments() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/payments`, {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-            mode: "cors",  // ✅ 確保 CORS 模式開啟
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            .catch(err => console.error('更新失敗:', err));
         }
 
-        const data = await response.json();
-        console.log("Payments:", data);
-    } catch (error) {
-        console.error("Fetch error:", error);
-    }
-}
-
-    // 更新交易記錄
-    function updatePayment() {
-        const id = document.getElementById('update-id').value;
-        const email = document.getElementById('update-email').value;
-        fetch(`${API_BASE_URL}/payments/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email })
-        })
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('result').innerText = data.message;
-            fetchPayments();
-        })
-        .catch(err => console.error('更新失敗:', err));
-    }
-
-    // 刪除交易記錄
-    function deletePayment() {
-        const id = document.getElementById('delete-id').value;
-        fetch(`${API_BASE_URL}/payments/${id}`, {
-            method: 'DELETE'
-        })
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('result').innerText = data.message;
-            fetchPayments();
-        })
-        .catch(err => console.error('刪除失敗:', err));
-    }
-</script>
+        function deletePayment() {
+            const id = document.getElementById('delete-id').value;
+            fetch(`${API_BASE_URL}/payments/${id}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('result').innerText = data.message;
+                fetchPayments();
+            })
+            .catch(err => console.error('刪除失敗:', err));
+        }
+    </script>
 </body>
-
 </html>

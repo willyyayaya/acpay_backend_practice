@@ -1,55 +1,86 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy import create_engine, text
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-import pymysql
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
+
+if not API_SECRET_KEY:
+    raise ValueError("API_SECRET_KEY 未設定，請在 .env 檔案內設定")
+
+DATABASE_URL = "mysql+pymysql://admin:admin@localhost:3306/acpay_db"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(255), nullable=False)
+    prime = Column(String(255), nullable=False)
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# 資料庫連線設定
-# DATABASE_URL = "mysql+pymysql://admin:admin@mysql:3306/acpay_db"
-DATABASE_URL = "mysql+pymysql://admin:admin@localhost:3306/acpay_db"
-
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
-    """取得資料庫 Session"""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-def test_db_connection() -> bool:
-    """測試 MySQL 連線"""
-    try:
-        with pymysql.connect(
-            host="localhost",
-            user="admin",
-            password="admin",
-            database="acpay_db",
-            port=3306
-        ) as connection:
-            return True
-    except pymysql.MySQLError as e:
-        print(f"MySQL 連線失敗: {e}")
-        return False
-
+# 測試
 @app.get("/")
 def read_root():
-    """首頁，測試 API 是否正常運行"""
-    return {"message": "FastAPI is running "}
+    return {"message": "FastAPI is running"}
 
-@app.get("/test-db")
-def test_database():
-    """測試 MySQL 連線"""
-    return {"message": "成功連線到 MySQL" if test_db_connection() else "無法連線到 MySQL"}
+@app.post("/payments/")
+def create_payment(payment_data: dict, db: Session = Depends(get_db)):
+    if "<" in payment_data.get("email", ""):
+        raise HTTPException(status_code=400, detail="Email 不能包含 HTML 標籤")
 
-@app.get("/test-sqlalchemy")
-def test_sqlalchemy(db: Session = Depends(get_db)):
-    """測試 SQLAlchemy 連線"""
-    try:
-        result = db.execute(text("SELECT 1"))
-        return {"message": "SQLAlchemy 成功連線到 MySQL", "result": result.fetchone()}
-    except Exception as e:
-        return {"message": f"SQLAlchemy 連線失敗: {str(e)}"}
+    new_payment = Payment(email=payment_data["email"], prime=payment_data["prime"])
+    db.add(new_payment)
+    db.commit()
+    db.refresh(new_payment)
+    return {"message": "交易創建成功", "order_id": new_payment.id}
+
+@app.get("/payments/")
+def get_payments(db: Session = Depends(get_db)):
+    return db.query(Payment).all()
+
+@app.get("/payments/{payment_id}")
+def get_payment(payment_id: int, db: Session = Depends(get_db)):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="交易記錄不存在")
+    return {"id": payment.id, "email": payment.email}
+
+@app.patch("/payments/{payment_id}")
+def update_payment(payment_id: int, payment_data: dict, db: Session = Depends(get_db)):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="交易記錄不存在")
+
+    if "email" in payment_data:
+        payment.email = payment_data["email"]
+
+    db.commit()
+    db.refresh(payment)
+    return {"message": "交易記錄更新成功"}
+
+@app.delete("/payments/{payment_id}")
+def delete_payment(payment_id: int, db: Session = Depends(get_db)):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="交易記錄不存在")
+
+    db.delete(payment)
+    db.commit()
+    return {"message": "交易記錄刪除成功"}
