@@ -370,7 +370,10 @@ INFO:     Application startup complete.
 6.如何將程式碼的環境打包?
 : 可以用 Docker 工具將整個環境打包，供其他工程師維護。
 
-目前的進度(1/21 ~ 2/13)
+7.關於金流，有無流程可以參考?
+: 目前參考 <https://docs.tappaysdk.com/tutorial/zh/back.html#pay-by-prime-api> 的流程圖傳送資訊。
+
+目前的進度(1/21 ~ 2/17)
 ---
 
-![Python Backend Project Plan](https://hackmd.io/_uploads/HkmtLJiKkx.png)
+![Python Backend Project Plan](https://hackmd.io/_uploads/HJfaMPx9Jx.png)

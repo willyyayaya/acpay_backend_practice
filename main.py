@@ -11,7 +11,9 @@ API_SECRET_KEY = os.getenv("API_SECRET_KEY")
 if not API_SECRET_KEY:
     raise ValueError("API_SECRET_KEY 未設定，請在 .env 檔案內設定")
 
+# DATABASE_URL = "mysql+pymysql://admin:admin@mysql:3306/acpay_db"
 DATABASE_URL = "mysql+pymysql://admin:admin@localhost:3306/acpay_db"
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -26,7 +28,6 @@ class Payment(Base):
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
 
 def get_db():
     db = SessionLocal()
