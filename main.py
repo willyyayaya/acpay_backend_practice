@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
-from sqlalchemy import create_engine, Column, Integer, String
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import TIMESTAMP, create_engine, Column, Integer, String, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 import os
@@ -22,12 +23,21 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), nullable=False)
-    prime = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
+    prime = Column(String(255), nullable=True)
+    created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def get_db():
     db = SessionLocal()
