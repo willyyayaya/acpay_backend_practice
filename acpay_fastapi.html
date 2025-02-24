@@ -78,6 +78,9 @@
 <script>
     ACconnect.setupSDK('090414780201003', '854b72ab-3828-4994-ab6c-16b5145937a8', 'sandbox');
 
+    // const API_BASE_URL = window.location.origin;
+    const API_BASE_URL = "http://127.0.0.1:8000";
+
     ACconnect.card.setup({
         fields: {
             number: { element: document.querySelector('.form-control.card-number'), placeholder: '**** **** **** ****' },
@@ -106,7 +109,7 @@
             const prime = result.card.prime;
             const email = document.getElementById("email").value;
 
-            fetch("http://localhost:8000/payments/", {
+            fetch(`${API_BASE_URL}/payments/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prime, email })
@@ -126,7 +129,7 @@
     });
 
     function getPayments() {
-        fetch("http://localhost:8000/payments/")
+        fetch(`${API_BASE_URL}/payments/`)
             .then(response => response.json())
             .then(data => {
                 document.getElementById("response-message").textContent = JSON.stringify(data, null, 2);
@@ -136,7 +139,7 @@
 
     function getPaymentById() {
         const id = document.getElementById("payment-id").value;
-        fetch(`http://localhost:8000/payments/${id}`)
+        fetch(`${API_BASE_URL}/payments/${id}`)
             .then(response => response.json())
             .then(data => {
                 document.getElementById("response-message").textContent = JSON.stringify(data, null, 2);
@@ -148,7 +151,7 @@
         const id = document.getElementById("update-payment-id").value;
         const email = document.getElementById("update-email").value;
 
-        fetch(`http://localhost:8000/payments/${id}`, {
+        fetch(`${API_BASE_URL}/payments/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email })
@@ -164,7 +167,7 @@
     function deletePaymentById() {
         const id = document.getElementById("delete-payment-id").value;
 
-        fetch(`http://localhost:8000/payments/${id}`, { method: "DELETE" })
+        fetch(`${API_BASE_URL}/payments/${id}`, { method: "DELETE" })
         .then(response => response.json())
         .then(data => {
             alert("交易記錄刪除成功");
