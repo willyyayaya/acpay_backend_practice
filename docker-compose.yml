@@ -1,46 +1,56 @@
-networks:
-  app-network:
-    driver: bridge
-
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: acpay_db
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: admin
-    ports:
-      - "3306:3306"
-    networks:
-      - app-network
-    volumes:
-      - ./mysql/acpay_db.sql:/docker-entrypoint-initdb.d/acpay_db.sql
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    environment:
-      PMA_HOST: mysql
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: admin
-    ports:
-      - "8080:80"
-    depends_on:
-      - mysql
-    networks:
-      - app-network
-
-  fastapi:
-    build: .
-    container_name: fastapi
+  backend:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./src:/run/src
+      - ./alembic:/run/alembic
+      - ./alembic.ini:/run/alembic.ini
+      - ./run_alembic.sh:/run/run_alembic.sh
     environment:
-      DATABASE_URL: "mysql+pymysql://admin:admin@mysql:3306/acpay_db"
-    depends_on:
-      - mysql
+      - PYTHONPATH=/run
+      - DEV=true
+    command: "python3.11 -m fastapi run src/server.py --host 0.0.0.0 --port 8000 --reload"
     networks:
-      - app-network
+      - shared_network
 
+  redis:
+    image: redis:7.0-alpine
+    restart: always
+    networks:
+      - shared_network
+    volumes:
+      - ./volume/redis_data:/data
+
+  mysql:
+    image: mysql:8.3
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+      MYSQL_DATABASE: template_db
+    volumes:
+      - ./mysql/template_db.sql:/docker-entrypoint-initdb.d/template_db.sql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - shared_network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8001:8080"
+    networks:
+      - shared_network
+
+networks:
+  shared_network:
+    driver: bridge
